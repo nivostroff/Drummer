@@ -1,0 +1,38 @@
+int MicVolume = 0;
+int flag = 1;
+int counter = 0;
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(115200);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  MicVolume = (analogRead(33)); //change the number in the analogRead(HERE) based on which pin in connected to OUT
+  Serial.println(MicVolume);
+  //logic of this code: 
+  // - if flag is one, we can print(categorize)the sound
+  // - once we categorize, we start the counter again and lower the flag to 0
+  // - once counter is greater than 50, we raise the flag and can categorize again
+  // - otherwise, we only restart counter if it gets absurdly big and might be int overflow
+  
+  if (counter > 50){
+    flag = 1;
+  }
+  if (counter > 2000000)
+    counter = 0;
+  if (MicVolume >2000 &&  flag == 1){
+    Serial.println("Loudest");
+    counter = 0;
+    flag = 0;
+  }
+    
+  else if ((MicVolume >1650) &&  flag==1){
+    Serial.println("Softest");
+    counter = 0;
+    flag = 0;
+  }
+    
+  delay(5);
+  counter++;
+}
