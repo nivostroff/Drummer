@@ -1,0 +1,131 @@
+int MicVolume = 0;
+int flag = 1;
+int counter = 0;
+int arrayLength = 200;
+uint32_t initial_time;
+int strengths[10000];
+int times[10000];
+int num_hits=0;
+int in1 = 32;                    //This is the output pin on the Arduino
+int in2 = 33;
+
+void setup() {
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  // put your setup code here, to run once:
+  Serial.begin(115200);
+  //mstrengths = (int *) calloc(arrayLength,sizeof(int));
+  //times =(int *) calloc(arrayLength,sizeof(int));
+  initial_time = millis();
+  for (int j; j<200;j++){
+    times[j]=0;
+    strengths[j]=0;
+  }
+}
+
+void loudHit(long hit_time){
+  counter = 0;
+  flag = 0;
+  times[num_hits]=hit_time;
+  printf("times[%d] after: %d\n",num_hits, times[num_hits]);
+  //strengths[i]=1;
+  strengths[num_hits]=2;
+  printf("strengths[%d] after: %d\n",num_hits, strengths[num_hits]);
+    
+  num_hits++;
+  printf("i:%d\n",num_hits);
+}
+
+void softHit(long hit_time){
+  counter = 0;
+  flag = 0;
+  times[num_hits]=hit_time;
+  printf("times[%d] after: %d\n",num_hits, times[num_hits]);
+  //strengths[i]=1;
+  strengths[num_hits]=0;
+  printf("strengths[%d] after: %d\n",num_hits, strengths[num_hits]);
+  printf("i:%d\n",num_hits);
+  num_hits++;
+}
+
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  //printf("%d\n",initial_time);
+  //printf("%d\n",millis());
+  MicVolume = (analogRead(14)); //change the number in the analogRead(HERE) based on which pin in connected to OUT
+  //Serial.println(MicVolume);
+  //logic of this code: 
+  // - if flag is one, we can print(categorize)the sound
+  // - once we categorize, we start the counter again and lower the flag to 0
+  // - once counter is greater than 50, we raise the flag and can categorize again
+  // - otherwise, we only restart counter if it gets absurdly big and might be int overflow
+
+
+  if (num_hits==200){
+    //solenoid code
+    delay(1000);
+    for (int i=1;i<num_hits;i++){
+      digitalWrite(in1, HIGH);
+      delay(50);
+      digitalWrite(in1, LOW);
+      delay(times[i]-times[i-1]);
+    }
+  }
+    //d igitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
+  //MAYBE use analog because it can work with continuous values vs digital which is just on/off aka 0/1
+  //delay(1000);                          //Wait 1 Second
+  //digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF
+  //delay(1000);                          //Wait 1 Second
+  
+  
+  if (counter > 150){
+    flag = 1;
+  }
+  if (counter > 2000000)
+    counter = 0;
+  if (MicVolume >2000 &&  flag == 1){
+    //Serial.println("Loudest");
+    Serial.println(MicVolume);
+    loudHit(millis());
+  }
+    
+  else if ((MicVolume >1650) &&  flag==1){
+    //Serial.println("Softest");
+    printf("entered soft if\n");
+    Serial.println(MicVolume);
+    //if we entered the soft if, sometimes it was just a soft sound before the loud thud. Therefore we want to check if a loud sounds
+    //came immeadiately after the soft one
+    bool loud_hit_happened = false;
+    long hit_time = millis();
+    for (int k=0; k<4; k++){
+      delay(5);
+      MicVolume = (analogRead(14));
+      Serial.println(MicVolume);
+      if (MicVolume>2000){
+        //replace soft hit with loud hit
+        loudHit(millis());
+        loud_hit_happened=true;
+      }
+    }
+    if (!loud_hit_happened){
+    softHit(hit_time);
+    }
+  }
+
+
+  
+  //printf("%d\n",millis());
+  if (counter==40){
+    for (int j=0; j<num_hits;j++){
+      //printf("times[%d]: %d\n",j,times[j]);
+      //printf("strengths[%d]: %d\n",j,strengths[j]);
+    }
+  }
+  Serial.println(MicVolume);
+  delay(5);
+  counter++;
+}
